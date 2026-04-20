@@ -75,12 +75,16 @@ const AppRoutes = () => {
   );
 };
 
+import { NotificationProvider } from './context/NotificationContext';
+
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <NotificationProvider>
+        <AuthProvider>
+          <AppRoutes />
+        </AuthProvider>
+      </NotificationProvider>
     </BrowserRouter>
   );
 }

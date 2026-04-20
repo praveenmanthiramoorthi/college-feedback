@@ -88,14 +88,25 @@ const lbl: React.CSSProperties = { display: 'block', fontSize: '0.78rem', fontWe
 /* ═══════════════════════════════════════════════════════════════ */
 /*                    ADMIN DASHBOARD                             */
 /* ═══════════════════════════════════════════════════════════════ */
+import { useNotification } from '../../context/NotificationContext';
+
+/* ═══════════════════════════════════════════════════════════════ */
+/*                    ADMIN DASHBOARD                             */
+/* ═══════════════════════════════════════════════════════════════ */
 const AdminDashboard: React.FC = () => {
   const { page } = useAdminNav();
+  const { showToast } = useNotification();
 
+  /* ── State ── */
   const [staff, setStaff] = useState<StaffMember[]>(SEED);
   const [deptFilter, setDeptFilter] = useState('All');
   const [search, setSearch]   = useState('');
   const [showAddForm, setShowAddForm] = useState(false);
   const [staffSubTab, setStaffSubTab] = useState<'directory' | 'hod'>('directory');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 8;
 
   const blank = { name: '', email: '', dept: DEPARTMENTS[0], subject: '', isHOD: false };
   const [form, setForm] = useState(blank);
@@ -115,6 +126,12 @@ const AdminDashboard: React.FC = () => {
     return matchDept && matchSearch;
   }), [staff, deptFilter, search]);
 
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginatedData = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filtered.slice(start, start + ITEMS_PER_PAGE);
+  }, [filtered, currentPage]);
+
   const totalActive    = staff.filter(s => s.status === 'active').length;
   const totalHODs      = staff.filter(s => s.isHOD).length;
   const totalFeedbacks = 138;
@@ -123,23 +140,43 @@ const AdminDashboard: React.FC = () => {
     hod: staff.find(s => s.dept === d && s.isHOD)?.name || '—',
   }));
 
-  /* ── HOD toggle ── */
-  const toggleHOD = (id: string) => setStaff(prev => {
-    const target = prev.find(s => s.id === id)!;
-    if (target.isHOD) return prev.map(s => s.id === id ? { ...s, isHOD: false } : s);
-    return prev.map(s => s.dept === target.dept ? { ...s, isHOD: s.id === id } : s);
-  });
+  /* ── Staff management helpers ── */
+  const toggleHOD = (id: string, name: string, dept: string) => {
+    setStaff(prev => {
+      const target = prev.find(s => s.id === id)!;
+      if (target.isHOD) {
+        showToast(`Revoked HOD status for ${name}`, 'info');
+        return prev.map(s => s.id === id ? { ...s, isHOD: false } : s);
+      }
+      showToast(`Assigned ${name} as Head of ${dept}`, 'success');
+      return prev.map(s => s.dept === target.dept ? { ...s, isHOD: s.id === id } : s);
+    });
+  };
 
-  const deleteStaff   = (id: string) => setStaff(prev => prev.filter(s => s.id !== id));
-  const toggleStatus  = (id: string) => setStaff(prev => prev.map(s => s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s));
+  const deleteStaff = (id: string, name: string) => {
+    if (confirm(`Are you sure you want to remove ${name}?`)) {
+      setStaff(prev => prev.filter(s => s.id !== id));
+      showToast(`${name} removed successfully`, 'info');
+    }
+  };
+
+  const toggleStatus = (id: string, name: string, currentStatus: string) => {
+    setStaff(prev => prev.map(s => s.id === id ? { ...s, status: s.status === 'active' ? 'inactive' : 'active' } : s));
+    showToast(`${name} is now ${currentStatus === 'active' ? 'Inactive' : 'Active'}`, 'info');
+  };
 
   const addStaff = () => {
-    if (!form.name || !form.email || !form.subject) return;
+    if (!form.name || !form.email || !form.subject) {
+      showToast('Please fill in all required fields', 'error');
+      return;
+    }
     setStaff(prev => {
       const updated = form.isHOD ? prev.map(s => s.dept === form.dept ? { ...s, isHOD: false } : s) : prev;
-      return [...updated, { id: Date.now().toString(), ...form, status: 'active' }];
+      return [{ id: Date.now().toString(), ...form, status: 'active' }, ...updated];
     });
+    showToast(`Registered ${form.name} in ${form.dept} department`, 'success');
     setForm(blank); setShowAddForm(false);
+    setCurrentPage(1);
   };
 
   /* ── Feedback Form helpers ── */
@@ -153,21 +190,32 @@ const AdminDashboard: React.FC = () => {
     setNewForm(f => ({ ...f, questions: f.questions.filter((_, idx) => idx !== i) }));
 
   const publishForm = () => {
-    if (!newForm.title || newForm.audience.length === 0 || newForm.questions.filter(q => q.trim()).length === 0) return;
+    if (!newForm.title || newForm.audience.length === 0 || newForm.questions.filter(q => q.trim()).length === 0) {
+      showToast('Please provide a title, audience, and at least one question', 'warning');
+      return;
+    }
     const entry: FeedbackForm = {
       id: Date.now().toString(), title: newForm.title, description: newForm.description,
       audience: newForm.audience, questions: newForm.questions.filter(q => q.trim()),
       createdAt: new Date().toISOString().slice(0, 10), status: 'active', responses: 0,
     };
     setForms(prev => [entry, ...prev]);
+    showToast(`"${newForm.title}" has been published to targets`, 'success');
     setNewForm({ title: '', description: '', audience: [], questions: [''] });
     setShowFormBuilder(false);
   };
 
-  const toggleFormStatus = (id: string) =>
+  const toggleFormStatus = (id: string, title: string, currentStatus: string) => {
     setForms(prev => prev.map(f => f.id === id ? { ...f, status: f.status === 'active' ? 'closed' : 'active' } : f));
+    showToast(`"${title}" is now ${currentStatus === 'active' ? 'Closed' : 'Active'}`, 'info');
+  };
 
-  const deleteForm = (id: string) => setForms(prev => prev.filter(f => f.id !== id));
+  const deleteForm = (id: string, title: string) => {
+    if (confirm(`Delete the form "${title}"? This cannot be undone.`)) {
+      setForms(prev => prev.filter(f => f.id !== id));
+      showToast(`Form "${title}" deleted`, 'info');
+    }
+  };
 
   /* ────────────────────────────────────────────────────────────── */
   /*   FILTER BAR (shared)                                         */
@@ -195,8 +243,15 @@ const AdminDashboard: React.FC = () => {
   /* ────────────────────────────────────────────────────────────── */
   const StaffDirectory = () => (
     <>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{filtered.length} member{filtered.length !== 1 ? 's' : ''} shown</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{filtered.length} member{filtered.length !== 1 ? 's' : ''} total</p>
+          <div style={{ height: 16, width: 1, background: 'var(--surface-border)' }} />
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button style={{ padding: '4px 10px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', border: '1px solid var(--surface-border)' }}>Import CSV</button>
+            <button style={{ padding: '4px 10px', borderRadius: 4, background: 'rgba(255,255,255,0.05)', fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)', border: '1px solid var(--surface-border)' }}>Export data</button>
+          </div>
+        </div>
         <button className="btn-primary" onClick={() => setShowAddForm(v => !v)}
           style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {showAddForm ? <X size={17} /> : <Plus size={17} />}
@@ -205,7 +260,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {showAddForm && (
-        <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1.5rem', border: '1px solid rgba(99,102,241,.4)' }}>
+        <div className="glass-card" style={{ marginBottom: '1.5rem', padding: '1.5rem', border: '1px solid var(--primary)' }}>
           <h4 style={{ marginBottom: '1rem', fontWeight: 700 }}>New Staff Member</h4>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: '0.75rem' }}>
             <div><label style={lbl}>Full Name</label>
@@ -229,7 +284,7 @@ const AdminDashboard: React.FC = () => {
               Assign as HOD
             </label>
             <button className="btn-primary" onClick={addStaff} style={{ padding: '9px 20px', display: 'flex', alignItems: 'center', gap: 6 }}>
-              <Check size={16} /> Save
+              <Check size={16} /> Save Member
             </button>
           </div>
         </div>
@@ -237,7 +292,7 @@ const AdminDashboard: React.FC = () => {
 
       <FilterBar />
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', marginBottom: '1.5rem' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
           <thead>
             <tr style={{ borderBottom: '1px solid var(--surface-border)' }}>
@@ -247,15 +302,13 @@ const AdminDashboard: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {paginatedData.length === 0 ? (
               <tr><td colSpan={6} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>No staff members match your filter.</td></tr>
-            ) : filtered.map(s => (
-              <tr key={s.id} style={{ borderBottom: '1px solid var(--surface-border)', transition: 'background .15s' }}
-                onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+            ) : paginatedData.map(s => (
+              <tr key={s.id} style={{ borderBottom: '1px solid var(--surface-border)', transition: 'background .15s' }}>
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', fontWeight: 800, fontSize: '0.85rem', background: 'rgba(99,102,241,.15)', color: '#6366f1', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <div style={{ width: 36, height: 36, borderRadius: '4px', fontWeight: 800, fontSize: '0.85rem', background: 'var(--background)', color: 'var(--primary)', border: '1px solid var(--surface-border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                       {s.name.split(' ').map(w => w[0]).join('').slice(0, 2)}
                     </div>
                     <div>
@@ -266,19 +319,19 @@ const AdminDashboard: React.FC = () => {
                 </td>
                 <td style={tdStyle}><span style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>{s.dept}</span></td>
                 <td style={tdStyle}><span style={{ fontSize: '0.85rem' }}>{s.subject}</span></td>
-                <td style={tdStyle}>{s.isHOD ? <Badge text="HOD" color="#6366f1" /> : <Badge text="Staff" color="#64748b" />}</td>
+                <td style={tdStyle}>{s.isHOD ? <Badge text="HOD" color="var(--primary)" /> : <Badge text="Staff" color="var(--text-muted)" />}</td>
                 <td style={tdStyle}>
-                  <button onClick={() => toggleStatus(s.id)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', fontSize: '0.82rem', fontWeight: 600, color: s.status === 'active' ? 'var(--success)' : 'var(--error)' }}>
+                  <button onClick={() => toggleStatus(s.id, s.name, s.status)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', fontSize: '0.82rem', fontWeight: 600, color: s.status === 'active' ? 'var(--success)' : 'var(--error)' }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', background: s.status === 'active' ? 'var(--success)' : 'var(--error)' }} />
                     {s.status === 'active' ? 'Active' : 'Inactive'}
                   </button>
                 </td>
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => toggleHOD(s.id)} style={{ padding: '5px 10px', borderRadius: 6, fontSize: '0.75rem', fontWeight: 700, background: s.isHOD ? 'rgba(239,68,68,.1)' : 'rgba(99,102,241,.1)', color: s.isHOD ? 'var(--error)' : '#6366f1' }}>
-                      {s.isHOD ? 'Revoke HOD' : 'Make HOD'}
+                    <button onClick={() => toggleHOD(s.id, s.name, s.dept)} style={{ padding: '5px 10px', borderRadius: 4, fontSize: '0.75rem', fontWeight: 700, background: s.isHOD ? 'rgba(185,28,28,0.05)' : 'rgba(30,58,138,0.05)', color: s.isHOD ? 'var(--error)' : 'var(--primary)', border: `1px solid ${s.isHOD ? 'var(--error)' : 'var(--primary)'}44` }}>
+                      {s.isHOD ? 'Revoke HOD' : 'Set HOD'}
                     </button>
-                    <button onClick={() => deleteStaff(s.id)} style={{ padding: '5px 9px', borderRadius: 6, background: 'rgba(239,68,68,.08)', color: 'var(--error)' }}>
+                    <button onClick={() => deleteStaff(s.id, s.name)} style={{ padding: '5px 9px', borderRadius: 4, background: 'rgba(185,28,28,.05)', color: 'var(--error)', border: '1px solid rgba(185,28,28,.1)' }}>
                       <Trash2 size={13} />
                     </button>
                   </div>
@@ -288,6 +341,46 @@ const AdminDashboard: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '1.5rem', borderTop: '1px solid var(--surface-border)' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+            Showing page {currentPage} of {totalPages}
+          </p>
+          <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <button 
+              disabled={currentPage === 1}
+              onClick={() => setCurrentPage(prev => prev - 1)}
+              style={{ padding: '8px 16px', borderRadius: 4, background: 'white', border: '1px solid var(--surface-border)', color: currentPage === 1 ? '#ccc' : 'var(--text-main)', opacity: currentPage === 1 ? 0.6 : 1 }}
+            >
+              Previous
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button 
+                key={p}
+                onClick={() => setCurrentPage(p)}
+                style={{ 
+                  width: 36, height: 36, borderRadius: 4, 
+                  background: currentPage === p ? 'var(--primary)' : 'white', 
+                  color: currentPage === p ? 'white' : 'var(--text-main)',
+                  border: '1px solid var(--surface-border)',
+                  fontWeight: 600
+                }}
+              >
+                {p}
+              </button>
+            ))}
+            <button 
+              disabled={currentPage === totalPages}
+              onClick={() => setCurrentPage(prev => prev + 1)}
+              style={{ padding: '8px 16px', borderRadius: 4, background: 'white', border: '1px solid var(--surface-border)', color: currentPage === totalPages ? '#ccc' : 'var(--text-main)', opacity: currentPage === totalPages ? 0.6 : 1 }}
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 
@@ -328,7 +421,7 @@ const AdminDashboard: React.FC = () => {
                 {deptStaff.filter(s => !s.isHOD && s.status === 'active').map(s => (
                   <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.6rem 0.75rem', borderRadius: 8, background: 'rgba(255,255,255,.03)', border: '1px solid var(--surface-border)' }}>
                     <span style={{ fontSize: '0.85rem' }}>{s.name}</span>
-                    <button onClick={() => toggleHOD(s.id)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 700, background: 'rgba(99,102,241,.12)', color: '#6366f1' }}>
+                    <button onClick={() => toggleHOD(s.id, s.name, dept)} style={{ padding: '4px 10px', borderRadius: 6, fontSize: '0.72rem', fontWeight: 700, background: 'rgba(99,102,241,.12)', color: '#6366f1' }}>
                       Set HOD
                     </button>
                   </div>
@@ -687,11 +780,11 @@ const AdminDashboard: React.FC = () => {
               <button onClick={() => setViewingForm(f)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 8, background: 'rgba(99,102,241,.1)', color: '#6366f1', fontSize: '0.82rem', fontWeight: 600 }}>
                 <Eye size={14} /> View
               </button>
-              <button onClick={() => toggleFormStatus(f.id)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 8, background: f.status === 'active' ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.1)', color: f.status === 'active' ? 'var(--error)' : 'var(--success)', fontSize: '0.82rem', fontWeight: 600 }}>
+              <button onClick={() => toggleFormStatus(f.id, f.title, f.status)} style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 14px', borderRadius: 8, background: f.status === 'active' ? 'rgba(239,68,68,.1)' : 'rgba(16,185,129,.1)', color: f.status === 'active' ? 'var(--error)' : 'var(--success)', fontSize: '0.82rem', fontWeight: 600 }}>
                 {f.status === 'active' ? <X size={14} /> : <Check size={14} />}
                 {f.status === 'active' ? 'Close' : 'Reopen'}
               </button>
-              <button onClick={() => deleteForm(f.id)} style={{ padding: '7px 10px', borderRadius: 8, background: 'rgba(239,68,68,.08)', color: 'var(--error)' }}>
+              <button onClick={() => deleteForm(f.id, f.title)} style={{ padding: '7px 10px', borderRadius: 8, background: 'rgba(239,68,68,.08)', color: 'var(--error)' }}>
                 <Trash2 size={14} />
               </button>
             </div>

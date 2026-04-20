@@ -74,7 +74,7 @@ const Sidebar: React.FC<{ isOpen: boolean; toggle: () => void }> = ({ isOpen, to
                         />
                         <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.8rem', marginTop: '0.5rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>College Management</p>
                     </div>
-                    <button onClick={toggle} style={{ background: 'none', color: 'white', padding: '8px' }} className="md-hidden">
+                    <button onClick={toggle} style={{ background: 'none', color: 'white', padding: '8px', border: 'none' }} className="md-hidden">
                         <X size={24} />
                     </button>
                 </div>
@@ -107,7 +107,7 @@ const Sidebar: React.FC<{ isOpen: boolean; toggle: () => void }> = ({ isOpen, to
                             })
                             : otherItems().map((item, idx) => (
                                 <li key={idx} style={{ marginBottom: '0.5rem' }}>
-                                    <a href="#" onClick={toggle} style={{
+                                    <a href="#" onClick={(e) => { e.preventDefault(); toggle(); }} style={{
                                         display: 'flex', alignItems: 'center',
                                         padding: '0.85rem 1rem', borderRadius: '0',
                                         color: item.active ? 'white' : 'rgba(255, 255, 255, 0.7)',
@@ -126,33 +126,34 @@ const Sidebar: React.FC<{ isOpen: boolean; toggle: () => void }> = ({ isOpen, to
                 </nav>
 
                 <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '4px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem' }}>
-                        <UserCircle color="white" />
+                    <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '4px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem' }}>
+                            <UserCircle color="white" />
+                        </div>
+                        <div>
+                            <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>{user?.name}</p>
+                            <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>{user?.role.toUpperCase()} {user?.isHOD ? '(HOD)' : ''}</p>
+                        </div>
                     </div>
-                    <div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>{user?.name}</p>
-                        <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>{user?.role.toUpperCase()} {user?.isHOD ? '(HOD)' : ''}</p>
-                    </div>
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            display: 'flex', alignItems: 'center', width: '100%',
+                            padding: '0.75rem', borderRadius: '8px',
+                            color: '#fca5a5', background: 'rgba(239, 68, 68, 0.1)', fontWeight: 600, border: 'none', cursor: 'pointer'
+                        }}
+                    >
+                        <LogOut size={18} style={{ marginRight: '0.75rem' }} />
+                        Logout
+                    </button>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        display: 'flex', alignItems: 'center', width: '100%',
-                        padding: '0.75rem', borderRadius: '8px',
-                        color: '#fca5a5', background: 'rgba(239, 68, 68, 0.1)', fontWeight: 600
-                    }}
-                >
-                    <LogOut size={18} style={{ marginRight: '0.75rem' }} />
-                    Logout
-                </button>
-            </div>
-        </aside>
+            </aside>
+        </>
     );
 };
 
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    const { user } = useAuth();
+    useAuth();
     const [page, setPage] = useState<AdminPage>('staff');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -178,10 +179,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
                 <Sidebar isOpen={isSidebarOpen} toggle={toggleSidebar} />
                 <main className="main-content">
-                    {/* For non-admin, just render children directly */}
-                    {user?.role !== 'admin' ? children : null}
-                    {/* For admin, children is AdminDashboard which reads page from context */}
-                    {user?.role === 'admin' ? children : null}
+                    {children}
                 </main>
             </div>
         </AdminNavContext.Provider>
