@@ -56,11 +56,13 @@ const Sidebar: React.FC = () => {
 
     return (
         <aside className="sidebar">
-            <div style={{ marginBottom: '2.5rem' }}>
-                <h1 style={{ fontSize: '1.5rem', fontWeight: 800, background: 'linear-gradient(to right, #6366f1, #ec4899)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                    EduFeedback
-                </h1>
-                <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.25rem' }}>College Management</p>
+            <div style={{ marginBottom: '2.5rem', textAlign: 'center' }}>
+                <img 
+                    src="/logo.png" 
+                    alt="RIT Logo" 
+                    style={{ width: '100%', maxWidth: '200px', height: 'auto', marginBottom: '1rem' }} 
+                />
+                <p style={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.85rem', marginTop: '0.25rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>College Management</p>
             </div>
 
             <nav style={{ flex: 1 }}>
@@ -75,14 +77,16 @@ const Sidebar: React.FC = () => {
                                         style={{
                                             display: 'flex', alignItems: 'center', width: '100%',
                                             padding: '0.75rem 1rem', borderRadius: '8px',
-                                            color: active ? 'white' : 'var(--text-muted)',
-                                            background: active ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
+                                            color: active ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                                            background: active ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
                                             textDecoration: 'none', transition: '0.2s',
-                                            border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '0.95rem',
+                                            border: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: '1rem',
+                                            borderLeft: active ? '4px solid var(--accent)' : '4px solid transparent',
+                                            borderRadius: '0', paddingLeft: '1.25rem'
                                         }}
                                     >
-                                        <item.icon size={20} style={{ marginRight: '0.75rem', color: active ? 'var(--primary)' : 'var(--text-muted)' }} />
-                                        <span style={{ fontWeight: active ? 600 : 400 }}>{item.label}</span>
+                                        <item.icon size={20} style={{ marginRight: '0.75rem', color: active ? 'var(--accent)' : 'rgba(255, 255, 255, 0.6)' }} />
+                                        <span style={{ fontWeight: active ? 700 : 400 }}>{item.label}</span>
                                     </button>
                                 </li>
                             );
@@ -92,12 +96,14 @@ const Sidebar: React.FC = () => {
                                 <a href="#" style={{
                                     display: 'flex', alignItems: 'center',
                                     padding: '0.75rem 1rem', borderRadius: '8px',
-                                    color: item.active ? 'white' : 'var(--text-muted)',
-                                    background: item.active ? 'rgba(99, 102, 241, 0.15)' : 'transparent',
-                                    textDecoration: 'none', transition: '0.2s'
+                                    color: item.active ? 'white' : 'rgba(255, 255, 255, 0.7)',
+                                    background: item.active ? 'rgba(255, 255, 255, 0.1)' : 'transparent',
+                                    textDecoration: 'none', transition: '0.2s',
+                                    borderLeft: item.active ? '4px solid var(--accent)' : '4px solid transparent',
+                                    paddingLeft: '1.25rem'
                                 }}>
-                                    <item.icon size={20} style={{ marginRight: '0.75rem', color: item.active ? 'var(--primary)' : 'var(--text-muted)' }} />
-                                    <span style={{ fontWeight: item.active ? 600 : 400 }}>{item.label}</span>
+                                    <item.icon size={20} style={{ marginRight: '0.75rem', color: item.active ? 'var(--accent)' : 'rgba(255, 255, 255, 0.6)' }} />
+                                    <span style={{ fontWeight: item.active ? 700 : 400 }}>{item.label}</span>
                                 </a>
                             </li>
                         ))
@@ -105,14 +111,14 @@ const Sidebar: React.FC = () => {
                 </ul>
             </nav>
 
-            <div style={{ borderTop: '1px solid var(--surface-border)', paddingTop: '1.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem' }}>
-                    <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem' }}>
+            <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.1)', paddingTop: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1.5rem', padding: '0 0.5rem' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: '4px', background: 'var(--accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '0.75rem' }}>
                         <UserCircle color="white" />
                     </div>
                     <div>
-                        <p style={{ fontSize: '0.9rem', fontWeight: 600 }}>{user?.name}</p>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{user?.role.toUpperCase()} {user?.isHOD ? '(HOD)' : ''}</p>
+                        <p style={{ fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>{user?.name}</p>
+                        <p style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>{user?.role.toUpperCase()} {user?.isHOD ? '(HOD)' : ''}</p>
                     </div>
                 </div>
                 <button
@@ -120,7 +126,7 @@ const Sidebar: React.FC = () => {
                     style={{
                         display: 'flex', alignItems: 'center', width: '100%',
                         padding: '0.75rem', borderRadius: '8px',
-                        color: 'var(--error)', background: 'rgba(239, 68, 68, 0.1)', fontWeight: 600
+                        color: '#fca5a5', background: 'rgba(239, 68, 68, 0.1)', fontWeight: 600
                     }}
                 >
                     <LogOut size={18} style={{ marginRight: '0.75rem' }} />

@@ -29,11 +29,16 @@ const LoginPage: React.FC = () => {
         <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
             <div className="glass-card animate-fade" style={{ width: '100%', maxWidth: '400px' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <img 
+                        src="/logo.png" 
+                        alt="College Logo" 
+                        style={{ width: '100%', maxWidth: '240px', height: 'auto', marginBottom: '1.5rem', borderRadius: '8px' }} 
+                    />
                     <div style={{
                         width: 80,
                         height: 80,
-                        borderRadius: '20px',
-                        background: 'rgba(99, 102, 241, 0.1)',
+                        borderRadius: '4px',
+                        background: 'var(--background)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -42,10 +47,10 @@ const LoginPage: React.FC = () => {
                     }}>
                         {getRoleIcon()}
                     </div>
-                    <h2 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '0.5rem' }}>
+                    <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', fontFamily: 'var(--font-heading)' }}>
                         {role?.toUpperCase()} LOGIN
                     </h2>
-                    <p style={{ color: 'var(--text-muted)' }}>Welcome back to the College Feedback System</p>
+                    <p style={{ color: 'var(--text-muted)', fontWeight: 600 }}>Institutional Access Portal</p>
                 </div>
 
                 <form onSubmit={handleLogin}>
